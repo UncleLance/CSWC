@@ -1,0 +1,31 @@
+﻿<Window x:Class="CSWC.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CSWC"
+        mc:Ignorable="d"
+        Title="CSWC" Height="960" Width="1280">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="4*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                <TextBox x:Name="UrlTextBox"  TextWrapping="Wrap" VerticalAlignment="Top" Width="500" Margin="5,5,0,0" HorizontalAlignment="Left" Height="20"/>
+                <Button x:Name="SearchButton" Content="Zoek" HorizontalAlignment="Right" Width="100" Margin="5,5,5,0" VerticalAlignment="Top" Height="20"/>
+                <Button x:Name="StartCrawlingButton" Content="Start crawling" Width="100" Margin="0,5,5,0" Height="20" HorizontalAlignment="Right" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="StartCrawlingButton_Click"/>
+            </StackPanel>
+
+        </StackPanel>
+        <DataGrid x:Name="SitemapDataGrid" Grid.Row="1" IsReadOnly="True" Margin="5,5,5,5" AutoGenerateColumns="False" ItemsSource="{Binding Pages}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Url" Width="1*" Binding="{Binding Url}"/>
+                <DataGridTextColumn Header="Titel" Width="*" Binding="{Binding Title}"/>
+                <DataGridTextColumn Header="SEO Omschrijving" Width="*" Binding="{Binding Description}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>
