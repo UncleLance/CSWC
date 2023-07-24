@@ -51,9 +51,9 @@ namespace CSWC
                 return;
             }
 
-            SitemapDataGrid.ItemsSource = Pages;
-
             Doc = new();
+
+            Urls.Add(Url);
 
             StartCrawling(Url);
         }
@@ -62,13 +62,88 @@ namespace CSWC
         {
             using (WebClient wc = new())
             {
-                //StringBuilder htmlSb = new StringBuilder(276438, Int32.MaxValue);
-
                 try
                 {
-                    // Todo : find fix for StackOverflowException
-                    //Html = wc.DownloadString(url);
                     Doc = web.Load(url);
+
+                    // Get title if it exists
+                    string title = Doc.DocumentNode.SelectSingleNode("//title") != null ?
+                                    Doc.DocumentNode.SelectSingleNode("//title").InnerText :
+                                    string.Empty;
+
+                    // Get meta description if it exists
+                    string description = Doc.DocumentNode.SelectSingleNode("//meta[@name='description']") != null ?
+                                            Doc.DocumentNode.SelectSingleNode("//meta[@name='description']").GetAttributeValue("content", string.Empty) :
+                                            string.Empty;
+
+                    // To prevent crawling on the same page again which causes title and description to not match the page
+                    Pages.Add(new Page
+                    {
+                        Url = url,
+                        Title = title,
+                        Description = description
+                    });
+
+                    // Scrape all a tags
+                    HtmlNodeCollection links = Doc.DocumentNode.SelectNodes("//a");
+
+                    // If no links were found on the page, navigate the next page
+                    if (links == null)
+                    {
+                        int urlIndex = Urls.IndexOf(url) + 1;
+
+                        // Find the next url to crawl, if it reaches the end, wrap it up
+                        if (urlIndex < Urls.Count)
+                            StartCrawling(Urls[urlIndex]);
+                        else
+                        {
+                            Urls.Clear();
+                            FinishCrawling();
+                        }
+                    }
+                    else
+                    {
+                        foreach (HtmlNode node in links.DistinctBy(l => l.GetAttributeValue("href", "NotFound")).ToList())
+                        {
+                            string link = node.GetAttributeValue("href", "NotFound");
+
+                            if (link.StartsWith("mailto:") ||
+                                link.StartsWith("tel:") ||
+                                link.EndsWith(".pdf") ||
+                                link.EndsWith(".jpg") ||
+                                link.EndsWith(".jpeg") ||
+                                link.EndsWith(".png") ||
+                                link.EndsWith(".mp4"))
+                                continue;
+
+                            // Preventing to navigate a page that already has been crawled through
+                            if (link.StartsWith("http://"))
+                                link = link.Replace("http://", "https://");
+
+                            if (link.StartsWith("/"))
+                                link = string.Concat("https://", link);
+
+                            if (!Urls.Exists(u => u == link) && (link.StartsWith('/') || link.Contains(Domain)))
+                                Urls.Add(link);
+                        }
+
+                        string last = Urls.Last();
+                        foreach (string u in Urls)
+                        {
+                            if (!Pages.Exists(p => p.Url == u))
+                            {
+                                StartCrawling(u);
+
+                                break;
+                            }
+
+                            if (u.Equals(last))
+                            {
+                                Urls.Clear();
+                                FinishCrawling();
+                            }
+                        }
+                    }
                 }
                 catch (WebException ex)
                 {
@@ -94,102 +169,15 @@ namespace CSWC
                     MessageBox.Show("Error bij pagina: " + url + "\nFoutmelding: " + ex.GetType().Name + "\nOmschrijving: " + ex.Message);
                     return;
                 }
-
-                //Doc.LoadHtml(Html);
-
-                // Get title if it exists
-                string title = Doc.DocumentNode.SelectSingleNode("//title") != null ?
-                                Doc.DocumentNode.SelectSingleNode("//title").InnerText : 
-                                string.Empty;
-
-                // Get meta description if it exists
-                string description = Doc.DocumentNode.SelectSingleNode("//meta[@name='description']") != null ?
-                                        Doc.DocumentNode.SelectSingleNode("//meta[@name='description']").GetAttributeValue("content", string.Empty) :
-                                        string.Empty;
-                // Scrape all a tags
-                HtmlNodeCollection links = Doc.DocumentNode.SelectNodes("//a");
-
-                // If no links were found on the page, navigate the next page
-                if (links == null) 
-                {
-                    int urlIndex = Urls.IndexOf(url) + 1;
-
-                    // Find the next url to crawl, if it reaches the end, wrap it up
-                    if(urlIndex < Urls.Count)
-                        StartCrawling(Urls[urlIndex]);
-                    else
-                    {
-                        Urls.Clear();
-                        FinishCrawling();
-                    }
-                }
-                else
-                {
-                    foreach(HtmlNode node in links.DistinctBy(l => l.GetAttributeValue("href", "NotFound")).ToList())
-                    {
-                        string link = node.GetAttributeValue("href", "NotFound");
-
-                        if (link.StartsWith("mailto:") || 
-                            link.StartsWith("tel:") || 
-                            link.EndsWith(".pdf") || 
-                            link.EndsWith(".jpg") ||
-                            link.EndsWith(".jpeg") ||
-                            link.EndsWith(".png"))
-                            continue;
-
-                        // Preventing to navigate a page that already has been crawled through
-                        if (link.StartsWith("http://"))
-                            link = link.Replace("http://", "https://");
-
-                        if (link.StartsWith("/"))
-                            link = string.Concat("https://", link);
-
-                        if (!Urls.Exists(u => u == link) && (link.StartsWith('/') || link.Contains(Domain)))
-                            Urls.Add(link);
-                    }
-
-                    //Urls.ForEach(url =>
-                    //{
-                    //    if(!Pages.Exists(p =>  p.Url == url))
-                    //    {
-                    //        Pages.Add(new Page
-                    //        {
-                    //            Url = u,
-                    //            Title = title,
-                    //            Description = description
-                    //        });
-                    //        StarCrawling(u);
-                    //        break;
-                    //    }
-                    //});
-
-                    string last = Urls.Last();
-                    foreach (string u in Urls)
-                    {
-                        if (!Pages.Exists(p => p.Url == u))
-                        {
-                            Pages.Add(new Page
-                            {
-                                Url = u,
-                                Title = title,
-                                Description = description
-                            });
-                            StartCrawling(u);
-                            break;
-                        }
-
-                        if (u.Equals(last))
-                        {
-                            Urls.Clear();
-                            FinishCrawling();
-                        }
-                    }
-                }
             }
         }
 
         private void FinishCrawling()
         {
+            SitemapDataGrid.ItemsSource = Pages;
+
+            PageCountLabel.Content = Pages.Count.ToString();
+            
             List<string> links = new();
 
             for (int i = 0; i < Pages.Count; i++)
@@ -197,8 +185,33 @@ namespace CSWC
                 links.Add(Pages[i].Url);
             }
 
-            File.WriteAllLines("C:\\Users\\Youssri\\Desktop\\" + "links2.txt", links);
+            ExportButton.IsEnabled = true;
             MessageBox.Show("Website succesvol gecrawld!");
+        }
+
+        private void ExportButton_Click(object sender, RoutedEventArgs e)
+        {
+            //TableTemplate exportWindow = new TableTemplate();
+
+            //exportWindow.ShowDialog();
+
+            string tableName = "basic_content_nl_";
+
+            List<string> queries = new();
+
+            foreach(Page page in Pages)
+            {
+                string path = page.Url.Replace(Url, string.Empty);
+
+                int segmentCount = path.Count(p => p == '/');
+
+                // Todo: correct colomn names
+                string insertQuery = string.Format("INSERT INTO {0} (`title`, ``)");
+
+                queries.Add(insertQuery);
+            }
+
+            File.WriteAllLines("C:\\" + "insert_queries.sql", queries);
         }
 
         /// <summary>

@@ -10,22 +10,43 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="1*"/>
             <RowDefinition Height="4*"/>
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
                 <TextBox x:Name="UrlTextBox"  TextWrapping="Wrap" VerticalAlignment="Top" Width="500" Margin="5,5,0,0" HorizontalAlignment="Left" Height="20"/>
-                <Button x:Name="SearchButton" Content="Zoek" HorizontalAlignment="Right" Width="100" Margin="5,5,5,0" VerticalAlignment="Top" Height="20"/>
-                <Button x:Name="StartCrawlingButton" Content="Start crawling" Width="100" Margin="0,5,5,0" Height="20" HorizontalAlignment="Right" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="StartCrawlingButton_Click"/>
+                <Button x:Name="StartCrawlingButton" Content="Start crawling" Width="100" Margin="5,5,5,0" Height="20" HorizontalAlignment="Right" VerticalAlignment="Top" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="StartCrawlingButton_Click"/>
+                <Button x:Name="ExportButton" IsEnabled="False" Content="Export" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,0,0" Click="ExportButton_Click"/>
             </StackPanel>
-
         </StackPanel>
-        <DataGrid x:Name="SitemapDataGrid" Grid.Row="1" IsReadOnly="True" Margin="5,5,5,5" AutoGenerateColumns="False" ItemsSource="{Binding Pages}">
+
+        <DataGrid x:Name="SitemapDataGrid" Grid.Row="1" IsReadOnly="True" Margin="5,5,5,5" ItemsSource="{Binding Pages}" AutoGenerateColumns="False">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Url" Width="1*" Binding="{Binding Url}"/>
                 <DataGridTextColumn Header="Titel" Width="*" Binding="{Binding Title}"/>
                 <DataGridTextColumn Header="SEO Omschrijving" Width="*" Binding="{Binding Description}"/>
             </DataGrid.Columns>
         </DataGrid>
+
+        <StatusBar Grid.Row="2" VerticalAlignment="Bottom" Margin="5,0,5,5">
+            <StatusBarItem>
+                <TextBlock>Aantal pagina's:</TextBlock>
+            </StatusBarItem>
+
+            <StatusBarItem>
+                <Label x:Name="PageCountLabel" Content="&lt;?&gt;" ></Label>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock>Crawling pagina:</TextBlock>
+            </StatusBarItem>
+            <StatusBarItem>
+                <Label x:Name="PageLabel" Content="&lt;?&gt;" ></Label>
+            </StatusBarItem>
+            <StatusBarItem>
+                <ProgressBar x:Name="CrawlingProgressBar" Height="10" Width="100"/>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>
