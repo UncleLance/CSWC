@@ -27,6 +27,7 @@ namespace CSWC
         private string Html;
         private string Domain, Url;
         private HtmlDocument Doc;
+        private HtmlWeb web = new();
         private List<Page> Pages = new();
         private List<string> Urls = new();
 
@@ -61,12 +62,13 @@ namespace CSWC
         {
             using (WebClient wc = new())
             {
-                StringBuilder htmlSb = new StringBuilder(276438, Int32.MaxValue);
+                //StringBuilder htmlSb = new StringBuilder(276438, Int32.MaxValue);
 
                 try
                 {
                     // Todo : find fix for StackOverflowException
-                    Html = wc.DownloadString(url);
+                    //Html = wc.DownloadString(url);
+                    Doc = web.Load(url);
                 }
                 catch (WebException ex)
                 {
@@ -93,7 +95,7 @@ namespace CSWC
                     return;
                 }
 
-                Doc.LoadHtml(Html);
+                //Doc.LoadHtml(Html);
 
                 // Get title if it exists
                 string title = Doc.DocumentNode.SelectSingleNode("//title") != null ?
@@ -104,7 +106,7 @@ namespace CSWC
                 string description = Doc.DocumentNode.SelectSingleNode("//meta[@name='description']") != null ?
                                         Doc.DocumentNode.SelectSingleNode("//meta[@name='description']").GetAttributeValue("content", string.Empty) :
                                         string.Empty;
-
+                // Scrape all a tags
                 HtmlNodeCollection links = Doc.DocumentNode.SelectNodes("//a");
 
                 // If no links were found on the page, navigate the next page
@@ -112,65 +114,75 @@ namespace CSWC
                 {
                     int urlIndex = Urls.IndexOf(url) + 1;
 
-                    StartCrawling(Urls[urlIndex]);
-                }
-
-                foreach(HtmlNode node in links.DistinctBy(l => l.GetAttributeValue("href", "NotFound")).ToList())
-                {
-                    string link = node.GetAttributeValue("href", "NotFound");
-
-                    if (link.StartsWith("mailto:") || 
-                        link.StartsWith("tel:") || 
-                        link.EndsWith(".pdf") || 
-                        link.EndsWith(".jpg") ||
-                        link.EndsWith(".jpeg") ||
-                        link.EndsWith(".png"))
-                        continue;
-
-                    if (link.StartsWith("http://"))
-                        link = link.Replace("http://", "https://");
-
-                    if (link.StartsWith("/"))
-                        link = string.Concat("https://", link);
-
-                    if (!Urls.Exists(u => u == link) && (link.StartsWith('/') || link.Contains(Domain)))
-                        Urls.Add(link);
-                }
-
-                //Urls.ForEach(url =>
-                //{
-                //    if(!Pages.Exists(p =>  p.Url == url))
-                //    {
-                //        Pages.Add(new Page
-                //        {
-                //            Url = u,
-                //            Title = title,
-                //            Description = description
-                //        });
-                //        StarCrawling(u);
-                //        break;
-                //    }
-                //});
-
-                string last = Urls.Last();
-                foreach (string u in Urls)
-                {
-                    if (!Pages.Exists(p => p.Url == u))
-                    {
-                        Pages.Add(new Page
-                        {
-                            Url = u,
-                            Title = title,
-                            Description = description
-                        });
-                        StartCrawling(u);
-                        break;
-                    }
-
-                    if (u.Equals(last))
+                    // Find the next url to crawl, if it reaches the end, wrap it up
+                    if(urlIndex < Urls.Count)
+                        StartCrawling(Urls[urlIndex]);
+                    else
                     {
                         Urls.Clear();
                         FinishCrawling();
+                    }
+                }
+                else
+                {
+                    foreach(HtmlNode node in links.DistinctBy(l => l.GetAttributeValue("href", "NotFound")).ToList())
+                    {
+                        string link = node.GetAttributeValue("href", "NotFound");
+
+                        if (link.StartsWith("mailto:") || 
+                            link.StartsWith("tel:") || 
+                            link.EndsWith(".pdf") || 
+                            link.EndsWith(".jpg") ||
+                            link.EndsWith(".jpeg") ||
+                            link.EndsWith(".png"))
+                            continue;
+
+                        // Preventing to navigate a page that already has been crawled through
+                        if (link.StartsWith("http://"))
+                            link = link.Replace("http://", "https://");
+
+                        if (link.StartsWith("/"))
+                            link = string.Concat("https://", link);
+
+                        if (!Urls.Exists(u => u == link) && (link.StartsWith('/') || link.Contains(Domain)))
+                            Urls.Add(link);
+                    }
+
+                    //Urls.ForEach(url =>
+                    //{
+                    //    if(!Pages.Exists(p =>  p.Url == url))
+                    //    {
+                    //        Pages.Add(new Page
+                    //        {
+                    //            Url = u,
+                    //            Title = title,
+                    //            Description = description
+                    //        });
+                    //        StarCrawling(u);
+                    //        break;
+                    //    }
+                    //});
+
+                    string last = Urls.Last();
+                    foreach (string u in Urls)
+                    {
+                        if (!Pages.Exists(p => p.Url == u))
+                        {
+                            Pages.Add(new Page
+                            {
+                                Url = u,
+                                Title = title,
+                                Description = description
+                            });
+                            StartCrawling(u);
+                            break;
+                        }
+
+                        if (u.Equals(last))
+                        {
+                            Urls.Clear();
+                            FinishCrawling();
+                        }
                     }
                 }
             }
