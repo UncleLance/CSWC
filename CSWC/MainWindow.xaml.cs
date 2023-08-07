@@ -16,6 +16,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.IO;
 using HtmlAgilityPack;
+using System.Diagnostics;
 
 namespace CSWC
 {
@@ -42,6 +43,9 @@ namespace CSWC
             Urls.Clear();
             
             Url = UrlTextBox.Text;
+
+            if (Url.EndsWith('/'))
+                Url = Url.Remove(Url.Length - 1);
 
             Domain = UrlTextBox.Text.Split('/')[2];
 
@@ -96,10 +100,7 @@ namespace CSWC
                         if (urlIndex < Urls.Count)
                             StartCrawling(Urls[urlIndex]);
                         else
-                        {
-                            Urls.Clear();
                             FinishCrawling();
-                        }
                     }
                     else
                     {
@@ -109,6 +110,8 @@ namespace CSWC
 
                             if (link.StartsWith("mailto:") ||
                                 link.StartsWith("tel:") ||
+                                link.StartsWith("//") ||
+                                link.Contains('#') || 
                                 link.EndsWith(".pdf") ||
                                 link.EndsWith(".jpg") ||
                                 link.EndsWith(".jpeg") ||
@@ -116,14 +119,18 @@ namespace CSWC
                                 link.EndsWith(".mp4"))
                                 continue;
 
+                            if (link.EndsWith('/'))
+                                link = link.Remove(link.Length - 1);
+
                             // Preventing to navigate a page that already has been crawled through
                             if (link.StartsWith("http://"))
                                 link = link.Replace("http://", "https://");
 
+                            // Relative path
                             if (link.StartsWith("/"))
-                                link = string.Concat("https://", link);
+                                link = string.Concat(Url, link);
 
-                            if (!Urls.Exists(u => u == link) && (link.StartsWith('/') || link.Contains(Domain)))
+                            if (!Urls.Exists(u => u == link) && link.Contains(Domain))
                                 Urls.Add(link);
                         }
 
@@ -138,31 +145,21 @@ namespace CSWC
                             }
 
                             if (u.Equals(last))
-                            {
-                                Urls.Clear();
                                 FinishCrawling();
-                            }
                         }
                     }
                 }
                 catch (WebException ex)
                 {
-                    
-                    HttpWebResponse error = ex.Response as HttpWebResponse;
-                    if (error.StatusCode == HttpStatusCode.NotFound)
+                    HttpWebResponse response = ex.Response as HttpWebResponse;
+
+                    switch (response.StatusCode)
                     {
-                        //MessageBoxResult dialog = MessageBox.Show("Error bij pagina: " + url + "\n404 niet gevonden!\nWil je doorgaan?", "404 niet gevonden", MessageBoxButton.YesNo);
-
-                        //if (dialog == MessageBoxResult.Yes) 
-                        //{
+                        case HttpStatusCode.NotFound:
                             int urlIndex = Urls.IndexOf(url) + 1;
-
                             StartCrawling(Urls[urlIndex]);
-                        //}
-                        //if (dialog == MessageBoxResult.No)
-                            //return;
+                            break;
                     }
-
                 }
                 catch (Exception ex)
                 {
@@ -173,7 +170,7 @@ namespace CSWC
         }
 
         private void FinishCrawling()
-        {
+        {            
             SitemapDataGrid.ItemsSource = Pages;
 
             PageCountLabel.Content = Pages.Count.ToString();
@@ -195,8 +192,6 @@ namespace CSWC
 
             //exportWindow.ShowDialog();
 
-            string tableName = "basic_content_nl_";
-
             List<string> queries = new();
 
             foreach(Page page in Pages)
@@ -214,20 +209,16 @@ namespace CSWC
             File.WriteAllLines("C:\\" + "insert_queries.sql", queries);
         }
 
-        /// <summary>
-        /// Return the page content without new lines, carriage return or tabs.
-        /// </summary>
-        private string PageContent(string html)
+        private void SitemapDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            StringBuilder sb = new(html.Length);
+            Page selectedItem = (Page)SitemapDataGrid.SelectedItem;
 
-            foreach (char c in html)
+            // Todo: cross OS support (mac)
+            Process.Start(new ProcessStartInfo
             {
-                if(c != '\n' && c != '\r' && c != '\t')
-                    sb.Append(c);
-            }
-
-            return sb.ToString();
+                UseShellExecute = true,
+                FileName = selectedItem.Url
+            });
         }
     }
 }
