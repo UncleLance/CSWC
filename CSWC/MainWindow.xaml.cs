@@ -80,6 +80,10 @@ namespace CSWC
                                             Doc.DocumentNode.SelectSingleNode("//meta[@name='description']").GetAttributeValue("content", string.Empty) :
                                             string.Empty;
 
+                    // Todo: get all content (headings, paragraphes, tables etc.) what it is able to find inside the <body>.
+                    // Exclude: <footer>, <nav>. For now exclude <form>, <img>, <video> and any kind of downloadable files.
+                    HtmlNode body = Doc.DocumentNode.SelectSingleNode("//body");
+
                     // To prevent crawling on the same page again which causes title and description to not match the page
                     Pages.Add(new Page
                     {
@@ -153,6 +157,7 @@ namespace CSWC
                 {
                     HttpWebResponse response = ex.Response as HttpWebResponse;
 
+                    // Todo: Multiple switches for appropiate status code.
                     switch (response.StatusCode)
                     {
                         case HttpStatusCode.NotFound:

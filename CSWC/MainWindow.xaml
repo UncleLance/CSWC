@@ -26,6 +26,7 @@
                 <DataGridTextColumn Header="Url" Width="1*" Binding="{Binding Url}"/>
                 <DataGridTextColumn Header="Titel" Width="*" Binding="{Binding Title}"/>
                 <DataGridTextColumn Header="SEO Omschrijving" Width="*" Binding="{Binding Description}"/>
+                <DataGridTextColumn Header="Content" Width="*" Binding="{Binding Content}"/>
             </DataGrid.Columns>
         </DataGrid>
 
@@ -42,9 +43,9 @@
                 <TextBlock>Crawling pagina:</TextBlock>
             </StatusBarItem>
             <StatusBarItem>
-                <Label x:Name="PageLabel" Content="&lt;?&gt;" ></Label>
+                <Label x:Name="PageLabel" Content="&lt;?&gt;" HorizontalAlignment="Left" Width="500" ></Label>
             </StatusBarItem>
-            <StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
                 <ProgressBar x:Name="CrawlingProgressBar" Height="10" Width="100"/>
             </StatusBarItem>
         </StatusBar>
